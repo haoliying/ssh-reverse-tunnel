@@ -1,0 +1,7 @@
+# WorkBuddy 项目数据（记忆、会话配置），不上传公开仓库
+.workbuddy/
+
+# 运行期产物
+*.log
+*.pid
+*.sock

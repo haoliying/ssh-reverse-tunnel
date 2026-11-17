@@ -1,0 +1,50 @@
+# ============================================================
+# ssh 反向隧道控制服务配置
+# 说明: 仅支持 "key: value" 扁平格式，不支持嵌套结构；# 之后为注释
+#
+# 开关机制: VPS 上开关文件的「首行内容」必须与本文件的 vps_password
+#           完全一致（区分大小写），才允许建立隧道。
+#           不一致、文件为空、文件不存在或读取失败，一律不放行。
+# SSH 认证: 强制密钥认证，不再支持密码登录。
+# ============================================================
+
+# ---------- VPS 连接信息（SSH 登录用） ----------
+vps_host: 1.2.3.4                 # 改成你的 VPS 地址或域名
+vps_port: 22
+vps_user: root
+
+# ---------- SSH 私钥（必填，强制密钥认证） ----------
+# 文件必须存在且可读。建议使用专用密钥对，且私钥不留口令（便于 systemd 后台运行）:
+#   ssh-keygen -t ed25519 -N '' -f /data/ssh-tunnel_key
+#   ssh-copy-id -i /data/ssh-tunnel_key.pub root@VPS
+ssh_key: /data/ssh-tunnel_key
+
+# ---------- 隧道启动口令（明文，必填，不可为空） ----------
+# 注意: 这不是 SSH 登录密码，而是「开关口令」。
+#   放行 —— 把下面这个值原样写入 VPS 开关文件的第一行
+#   关闭 —— 清空开关文件，或写入任意不匹配的内容
+# 建议: tr -dc 'A-Za-z0-9' </dev/urandom | head -c 32 生成随机串
+vps_password: "CHANGE_ME_TUNNEL_SECRET"
+
+# ---------- VPS 上的开关文件 ----------
+switch_dir: /data                 # 开关文件所在目录
+switch_file: ssh-tunnel-on-off    # 开关文件名（若实际叫 seu-on-off，改这里）
+# 最终读取路径: /data/ssh-tunnel-on-off
+# 放行: echo -n 'CHANGE_ME_TUNNEL_SECRET' > /data/ssh-tunnel-on-off
+# 关闭: > /data/ssh-tunnel-on-off          （清空即可，SSH 连得上就行）
+
+# ---------- 隧道映射 ----------
+tunnel_remote_port: 8080          # VPS 上对外监听的端口
+tunnel_local_host: 127.0.0.1      # 内网服务地址
+tunnel_local_port: 80             # 内网服务端口
+
+# ---------- 调度参数 ----------
+poll_interval: 30                 # 轮询开关文件的间隔（秒）
+ssh_timeout: 15                   # 单次 ssh 操作超时（秒）
+auto_reload: 1                    # 1=本文件被修改后自动热生效（最多延迟一个 poll_interval）
+                                  # 0=关闭自动加载，改完必须 systemctl reload ssh-tunnel
+
+# ---------- 可选 ----------
+log_file: /data/ssh-tunnel.log
+runtime_dir: /tmp                 # socket / pid / 锁文件存放目录
+on_daemon_exit: keep              # 服务停止时对隧道的动作: keep=保持现状 / close=关闭隧道

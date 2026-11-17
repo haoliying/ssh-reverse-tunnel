@@ -1,0 +1,67 @@
+# ============================================================
+# ssh-tunnel-lite.sh 多隧道配置文件示例
+#
+# 用法:
+#   ./ssh-tunnel-lite.sh start  -f conf/ssh.conf            # 启动全部
+#   ./ssh-tunnel-lite.sh start  -f conf/ssh.conf web ssh    # 只启动这两条
+#   ./ssh-tunnel-lite.sh stop   -f conf/ssh.conf web        # 只停 web
+#   ./ssh-tunnel-lite.sh status -f conf/ssh.conf
+#   ./ssh-tunnel-lite.sh list   -f conf/ssh.conf
+#
+# 规则:
+#   - VPS 连接信息在「全局段」只写一份，所有隧道共用
+#   - 每条映射一个 [tunnel:名字] 段，名字自定义，用于 start/stop 时点名
+#   - remote_port 必填且不能重复（socket/pid/日志都按它命名）
+#   - 值后面可以跟 # 注释；含 # 的值请用引号包起来
+#   - 缩进不敏感，CRLF 换行也能读
+# ============================================================
+
+# ---------- 全局段：VPS 连接信息 ----------
+vps_host: 1.2.3.4                 # VPS 地址或域名
+vps_port: 22                      # SSH 端口
+vps_user: root                    # 登录用户名
+ssh_key: /data/keys/id_rsa        # 私钥（无口令，权限 600）
+remote_bind_addr: 0.0.0.0         # VPS 侧监听地址，0.0.0.0=对外可访问
+
+# ---------- 全局段：守护参数（可选，都有默认值） ----------
+check_interval: 10                # 每隔多少秒检查一次隧道是否存活
+health_check: 1                   # 1=开启深度探测 / 0=只查本地进程
+health_interval: 60               # 深度探测间隔（秒）
+ssh_timeout: 15                   # 单次 ssh 操作超时（秒）
+start_timeout: 30                 # start 后等待就绪的最长时间（秒）
+
+# 全局日志（可选）。不写则每条隧道各自写 /tmp/ssh-tunnel-lite-<remote_port>.log
+# log_file: /data/ssh-tunnel.log
+
+# ============================================================
+# 隧道映射：每段一条，可任意增减
+# ============================================================
+
+[tunnel:web]
+remote_port: 8080
+local_host: 127.0.0.1
+local_port: 80
+
+[tunnel:ssh]
+remote_port: 2222
+local_host: 127.0.0.1
+local_port: 22
+
+[tunnel:api]
+remote_port: 9000
+local_host: 10.0.0.5             # 也可以是内网另一台机器
+local_port: 3000
+# enabled: 0                     # 写 0 时 start 全部会跳过，显式点名仍可启动
+# log_file: /data/tunnel-api.log # 段内可单独指定日志
+
+# ------------------------------------------------------------
+# 旧格式兼容：不写任何 [tunnel:xxx] 段、只写下面三行也可以，
+# 会被当成一条名为 default 的隧道：
+#
+#   tunnel_remote_port: 8080
+#   tunnel_local_host: 127.0.0.1
+#   tunnel_local_port: 80
+#
+# 纯命令行用法同样保留（不需要配置文件）:
+#   ./ssh-tunnel-lite.sh start -s 1.2.3.4 -r 8080 -p 80
+# ------------------------------------------------------------

@@ -1,0 +1,33 @@
+# ============================================================
+# ssh 反向隧道配置（ssh-tunnel-direct.sh 专用）
+# 说明: 仅支持 "key: value" 扁平格式，不支持嵌套结构；# 之后为注释
+#       无远程开关、无热加载，改完配置请 stop 再 start
+# ============================================================
+
+# ---------- VPS 连接信息 ----------
+vps_host: 1.2.3.4                 # 改成你的 VPS 地址或域名
+vps_port: 22
+vps_user: root
+
+# ---------- SSH 私钥（必填，强制密钥认证） ----------
+# 必须存在且可读，且私钥不留口令（后台运行无法交互输入口令）:
+#   ssh-keygen -t ed25519 -N '' -f /data/ssh-tunnel_key
+#   ssh-copy-id -i /data/ssh-tunnel_key.pub root@VPS
+ssh_key: /data/ssh-tunnel_key
+
+# ---------- 隧道映射 ----------
+remote_bind_addr: 0.0.0.0         # VPS 侧监听地址，0.0.0.0=对外可访问；改 127.0.0.1 则仅 VPS 本机可访问
+tunnel_remote_port: 8080          # VPS 上对外监听的端口
+tunnel_local_host: 127.0.0.1      # 内网服务地址
+tunnel_local_port: 80             # 内网服务端口
+
+# ---------- 守护参数 ----------
+check_interval: 10                # 每隔多少秒检查一次隧道是否还活着（秒）
+health_check: 1                   # 1=开启深度探测 / 0=只检查本地进程存活
+health_interval: 60               # 深度探测间隔（秒）：去 VPS 上确认端口是否真的在监听
+ssh_timeout: 15                   # 单次 ssh 操作超时（秒）
+start_timeout: 30                 # start 后等待隧道就绪的最长时间（秒）
+
+# ---------- 可选 ----------
+log_file: /data/ssh-tunnel-direct.log
+runtime_dir: /tmp                 # socket / pid / 锁文件存放目录

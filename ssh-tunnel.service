@@ -1,0 +1,21 @@
+[Unit]
+Description=SSH reverse tunnel controller (switch-file driven)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+Environment=SSH_TUNNEL_CONFIG=/data/ssh-tunnel.yml
+ExecStart=/usr/local/bin/ssh-tunnel.sh daemon
+# 改完 /data/ssh-tunnel.yml 立即生效（不发 HUP 的话最多等一个 poll_interval 自动热加载）
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=always
+RestartSec=10
+KillSignal=SIGTERM
+TimeoutStopSec=30
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=ssh-tunnel
+
+[Install]
+WantedBy=multi-user.target
